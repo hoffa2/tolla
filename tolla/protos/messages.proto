@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package messages;
+
+message FromClient {
+    oneof msg {
+        Consent consent = 1;
+        Intent intent = 2;
+    }
+}
+
+message ToClient {
+    bool success = 1;
+    oneof msg {
+        Error error = 2;
+    }
+}
+
+message Policy {
+    string tag = 1;
+}
+
+message Error {
+    string error = 1;
+}
+
+message Intent {
+    string id = 1;
+    repeated string intent = 2;
+}
+
+message Consent {
+    string id = 1;
+    repeated string purpose = 2;
+    uint64 lifetime = 3;
+    bool marketing = 4;
+    bool profiling = 5;
+    bool public = 6;
+}
