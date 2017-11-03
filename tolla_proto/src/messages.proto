@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package messages;
+
+message FromClient {
+    oneof msg {
+        Consent consent = 1;
+        Certificate certificateRequest = 2;
+        Intent intent = 3;
+        NewUser user = 4;
+    }
+}
+
+// der-serialized certificate
+message Certificate {
+    string intent = 1;
+    bytes request = 2;
+    bytes root_cert = 3;
+}
+
+message ToClient {
+    bool success = 1;
+    oneof msg {
+        Error error = 2;
+        Certificate certificate = 3;
+    }
+}
+
+message NewUser {
+    string userid = 1;
+    string email = 2;
+}
+
+message Policy {
+    string tag = 1;
+}
+
+message Error {
+    string error = 1;
+}
+
+message Intent {
+    string id = 1;
+    string intent = 2;
+}
+
+message Consent {
+    string id = 1;
+    repeated string purpose = 2;
+    uint64 lifetime = 3;
+    bool marketing = 4;
+    bool profiling = 5;
+    bool public = 6;
+}
