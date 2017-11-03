@@ -8,6 +8,7 @@ message FromClient {
         Certificate certificateRequest = 2;
         Intent intent = 3;
         NewUser user = 4;
+        bool RequestIps = 5;
     }
 }
 
@@ -18,11 +19,16 @@ message Certificate {
     bytes root_cert = 3;
 }
 
+message Addresses {
+    repeated string ip = 1;
+}
+
 message ToClient {
     bool success = 1;
     oneof msg {
         Error error = 2;
         Certificate certificate = 3;
+        Addresses ips = 4;
     }
 }
 
