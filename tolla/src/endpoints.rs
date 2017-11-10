@@ -93,11 +93,9 @@ impl Handler for Register {
         };
 
         let router = self.router.clone();
-        let ip = match router.lock().unwrap().onboard_user(&deserialized.id) {
-            Ok(ip) => ip,
-            Err(err) => return Ok(Response::with((Status::BadRequest, err.to_string()))),
+        if let Err(err) = router.lock().unwrap().deboard_user(&deserialized.id) {
+            return Ok(Response::with((Status::BadRequest, err.to_string())));
         };
-
         Ok(Response::with(Status::Ok))
     }
 }
@@ -117,9 +115,8 @@ impl Handler for Remove {
             .unwrap_or("/");
 
         let router = self.router.clone();
-        let ip = match router.lock().unwrap().deboard_user(&String::from(user)) {
-            Ok(ip) => ip,
-            Err(err) => return Ok(Response::with((Status::BadRequest, err.to_string()))),
+        if let Err(err) = router.lock().unwrap().deboard_user(&String::from(user)) {
+            return Ok(Response::with((Status::BadRequest, err.to_string())));
         };
         Ok(Response::with(Status::Ok))
     }

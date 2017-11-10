@@ -1,15 +1,14 @@
 use bson;
-use mongodb::{Client, ThreadedClient, Error};
+use mongodb::{Client, ThreadedClient};
 use mongodb::db::ThreadedDatabase;
 use std::time::Duration;
 use tolla_proto::proto;
 use chrono::prelude::*;
 use std::collections::HashMap;
-use bytes::{BufMut, BytesMut};
+use bytes::BytesMut;
 use ca::Authority;
 use docker;
 use std::env;
-use std::path::Path;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Consent {
@@ -78,8 +77,6 @@ impl ConsentEngineBuilder {
             || format!("address not present"),
         )?;
         let port = self.port.ok_or_else(|| format!("port not present"))?;
-
-
 
         let deamon_address = self.deamon.clone().ok_or_else(
             || format!("deamon address not present"),
@@ -227,15 +224,13 @@ impl ConsentEngine {
     pub fn remove_user(&self, user_id: &String) -> Result<(), String> {
         let consents = self.client.db("test").collection("consents");
 
-        let consent_doc = match consents.delete_one(doc! { "_id" => user_id }, None) {
-            Ok(c) => c,
-            Err(err) => return Err(err.to_string()),
+        if let Err(err) = consents.delete_one(doc! { "_id" => user_id }, None) {
+            return Err(err.to_string());
         };
 
         let views = self.client.db("test").collection("views");
-        let consent_doc = match views.delete_one(doc! { "_id" => user_id }, None) {
-            Ok(c) => c,
-            Err(err) => return Err(err.to_string()),
+        if let Err(err) = views.delete_one(doc! { "_id" => user_id }, None) {
+            return Err(err.to_string());
         };
 
         Ok(())
@@ -375,7 +370,6 @@ impl ConsentEngine {
 
 
         self.authority.create_db_certificate(
-            id,
             &mut key,
             &mut certificate,
         )?;
@@ -418,7 +412,7 @@ impl ConsentEngine {
         let res = self.deamon.new_container(
             &String::from("tenant"),
             id,
-            &vec![&cert_path as &str, &key_path as &str],
+            &vec![&cert_path as &str, &key_path as &str, &ca_path as &str],
             env,
         );
 

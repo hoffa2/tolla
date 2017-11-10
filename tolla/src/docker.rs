@@ -24,11 +24,14 @@ impl StoreManager {
     // Start containers by id
     pub fn start_containers(&self, ids: Vec<String>) -> Result<(), String> {
         let containers = self.deamon.containers();
+        info!("starting containers");
         for container_ids in ids {
             let container = containers.get(&container_ids);
             if let Err(err) = container.start() {
+                error!("{}", err.to_string());
                 return Err(err.to_string());
             }
+            info!("Successfully started {}", container.id());
         }
 
         Ok(())

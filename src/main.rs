@@ -1,3 +1,5 @@
+#![deny(warnings)]
+
 extern crate lib_tolla;
 extern crate tokio_proto;
 extern crate tokio_core;
@@ -11,7 +13,6 @@ extern crate simplelog;
 
 use tokio_proto::TcpServer;
 use std::net::TcpStream;
-use std::net::Shutdown;
 use tolla_proto::proto;
 use lib_tolla::*;
 use std::io::Write;
@@ -23,18 +24,18 @@ use iron::Iron;
 use router::Router;
 use std::sync::{Arc, Mutex};
 use log::LogLevel;
-use simplelog::{Config, TermLogger, WriteLogger, CombinedLogger, LogLevelFilter};
+use simplelog::{Config, WriteLogger, LogLevelFilter};
 use std::fs::File;
 
 fn main() {
     let log_conf = Config {
-        time: Some(LogLevel::Error),
-        level: Some(LogLevel::Error),
-        target: Some(LogLevel::Error),
-        location: Some(LogLevel::Error),
+        time: Some(LogLevel::Debug),
+        level: Some(LogLevel::Debug),
+        target: Some(LogLevel::Debug),
+        location: Some(LogLevel::Debug),
     };
     WriteLogger::init(
-        LogLevelFilter::Info,
+        LogLevelFilter::Debug,
         log_conf,
         File::create("log.log").unwrap(),
     ).unwrap();
@@ -53,7 +54,12 @@ fn main() {
 }
 
 fn run_http() {
-    let consent = consent::ConsentEngine::setup(&String::from("0.0.0.0"), 27017).unwrap();
+    let consent = consent::ConsentEngineBuilder::new()
+        .address(format!("127.0.0.1"))
+        .port(27017)
+        .deamon(format!("http://127.0.0.1:2375"))
+        .build()
+        .unwrap();
 
     let consent_ref = Arc::new(Mutex::new(consent));
 

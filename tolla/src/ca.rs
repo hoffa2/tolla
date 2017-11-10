@@ -3,7 +3,6 @@ use openssl::pkey::PKey;
 use openssl::x509::{X509Builder, X509NameBuilder, X509Extension, X509Req};
 use openssl::hash::MessageDigest;
 use openssl::asn1::Asn1Time;
-use openssl::asn1::Asn1Integer;
 use openssl::bn::BigNum;
 use openssl::nid;
 use uuid::Uuid;
@@ -66,7 +65,6 @@ impl Authority {
     // Create certificate and keypair
     pub fn create_db_certificate(
         &self,
-        id: &String,
         keys: &mut BytesMut,
         cert: &mut BytesMut,
     ) -> Result<(), String> {
@@ -88,7 +86,7 @@ impl Authority {
         let serial_number = bignum.to_asn1_integer().map_err(|e| e.to_string())?;
         builder.set_serial_number(&serial_number).map_err(
             |e| e.to_string(),
-        );
+        )?;
 
         let expiration = Asn1Time::days_from_now(10).unwrap();
         builder.set_not_after(&expiration).unwrap();
@@ -154,35 +152,47 @@ impl Authority {
         cert.set_not_before(&valid).unwrap();
 
         cert.set_pubkey(&pubkey).unwrap();
-        let mut cn = req.subject_name()
+        let cn = req.subject_name()
             .entries_by_nid(nid::COMMONNAME)
             .nth(0)
             .ok_or("no common name")?;
-        let mut country = req.subject_name()
+        let country = req.subject_name()
             .entries_by_nid(nid::COUNTRYNAME)
             .nth(0)
             .ok_or("no contry")?;
-        let mut org = req.subject_name()
+        let org = req.subject_name()
             .entries_by_nid(nid::ORGANIZATIONNAME)
             .nth(0)
             .ok_or("no org")?;
-        let mut state = req.subject_name()
+        let state = req.subject_name()
             .entries_by_nid(nid::STATEORPROVINCENAME)
             .nth(0)
             .ok_or("no state")?;
 
         let mut x509_name = X509NameBuilder::new().map_err(|e| e.to_string())?;
 
-        x509_name.append_entry_by_nid(nid::COMMONNAME, &cn.data().as_utf8().unwrap().to_string());
-        x509_name.append_entry_by_nid(nid::COUNTRYNAME, &org.data().as_utf8().unwrap().to_string());
-        x509_name.append_entry_by_nid(
-            nid::ORGANIZATIONNAME,
-            &org.data().as_utf8().unwrap().to_string(),
-        );
-        x509_name.append_entry_by_nid(
-            nid::STATEORPROVINCENAME,
-            &state.data().as_utf8().unwrap().to_string(),
-        );
+        x509_name
+            .append_entry_by_nid(nid::COMMONNAME, &cn.data().as_utf8().unwrap().to_string())
+            .map_err(|e| e.to_string())?;
+        x509_name
+            .append_entry_by_nid(
+                nid::COUNTRYNAME,
+                &country.data().as_utf8().unwrap().to_string(),
+            )
+            .map_err(|e| e.to_string())?;
+        x509_name
+            .append_entry_by_nid(
+                nid::ORGANIZATIONNAME,
+                &org.data().as_utf8().unwrap().to_string(),
+            )
+            .map_err(|e| e.to_string())?;
+
+        x509_name
+            .append_entry_by_nid(
+                nid::STATEORPROVINCENAME,
+                &state.data().as_utf8().unwrap().to_string(),
+            )
+            .map_err(|e| e.to_string())?;
 
         let subject_id = Uuid::new_v4();
         let ext = X509Extension::new_nid(
