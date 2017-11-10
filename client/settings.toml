@@ -1,0 +1,15 @@
+[process]
+intent = "eeey"
+country = "NO"
+state = "TR"
+org = "ifi"
+common_name = "localhost"
+
+[ca]
+address = "127.0.0.1"
+port = "8900"
+
+[certs]
+key  = "key.pem"
+ca   = "ca.pem"
+cert = "cert.pem" 

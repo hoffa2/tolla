@@ -1,29 +1,30 @@
 use futures::{future, Future};
 use tokio_service::Service;
-use bytes::{Bytes, Buf, IntoBuf};
-use prost::Message;
-
 use std::io;
-use prost::encoding::message;
-use proto;
-use consent;
+use tolla_proto::proto;
+use std::sync::{Arc, Mutex};
+use consent::ConsentEngine;
 
-impl Service for consent::ConsentEngine {
-    type Request = Vec<u8>;
-    type Response = Vec<u8>;
+pub struct ProtoService {
+    pub engine: Arc<Mutex<ConsentEngine>>,
+}
+
+impl Service for ProtoService {
+    type Request = proto::FromClient;
+    type Response = proto::ToClient;
     type Error = io::Error;
     type Future = Box<Future<Item = Self::Response, Error = Self::Error>>;
 
     fn call(&self, req: Self::Request) -> Self::Future {
-        let len = req.len();
-        let msg = proto::FromClient::decode(&mut Buf::take(req.into_buf(), len));
-        if let Err(err) = msg {
-            return Box::new(future::err(io::Error::new(io::ErrorKind::Other, err)));
+        let engine = self.engine.clone();
+        let resp = engine.lock().unwrap().handle_incoming(req);
+        match resp {
+            Ok(r) => return Box::new(future::ok(r)),
+            Err(err) => {
+                return Box::new(future::err(
+                    io::Error::new(io::ErrorKind::InvalidData, err.to_string()),
+                ))
+            }
         }
-
-        let resp = self.handle_incoming(msg.unwrap());
-        Box::new(future::ok(resp))
     }
 }
-
-

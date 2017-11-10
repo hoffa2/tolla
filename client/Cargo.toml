@@ -1,0 +1,21 @@
+[package]
+name = "client"
+version = "0.1.0"
+authors = ["hoffa2 <helhof@online.no>"]
+
+[dependencies]
+config = "0.7"
+serde_derive = "*"
+serde = "*"
+bytes = "0.4"
+tokio-core = "0.1.9"
+tokio-io = "0.1"
+tokio-proto = "0.1.1"
+futures = "0.1"
+native-tls = "0.1.4"
+mongodb = { version = "0.3.7", features = ["ssl"] }
+prost = "0.2.0"
+openssl = "0.9.20"
+prost-derive = "0.2.0"
+bson = "*"
+tolla_proto = { git = "https://github.com/hoffa2/tolla" }

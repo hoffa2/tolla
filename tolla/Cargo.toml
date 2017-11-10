@@ -2,23 +2,37 @@
 name = "lib_tolla"
 version = "0.1.0"
 authors = ["hoffa2 <helhof@online.no>"]
-build = "build.rs"
 
 [dependencies]
-prost = "0.1.0"
-prost-derive = "0.1.0"
+prost = "0.2.0"
+prost-derive = "0.2.0"
 mongodb = "0.3.3"
-bson = "0.9.0"
+bson = "0.10.0"
 bytes = "0.4"
+shiplift = "0.3"
+url = "1.5.1"
+log = "0.3"
+mysql = "12"
 futures = "0.1"
-tokio-core = "0.1"
-tokio-proto = "0.1"
+tokio-core = "0.1.9"
+tokio-proto = "0.1.1"
+uuid = { version = "0.5", features = ["v4"] }
+jwt = "*"
+openssl = { version = "0.9.20", path = "../rust-openssl/openssl" }
 tokio-service = "0.1"
 tokio-io = "0.1"
+iron = "*"
+router = "*"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
+tolla_proto = {version = "0.1.0", path = "../tolla_proto" }
 chrono = { version = "0.4", features = ["serde", "rustc-serialize"] }
 
-[build-dependencies]
-prost-build = "0.1.0"
+[dependencies.rusqlite]
+version = "0.11.0"
+features = ["bundled"]
+
+[replace]
+"openssl-sys:0.9.20" = {path = "../rust-openssl/openssl-sys"}
+

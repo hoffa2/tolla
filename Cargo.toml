@@ -1,0 +1,24 @@
+[project]
+name = "main"
+version = "0.1.0"
+
+[dependencies.lib_tolla]
+path = "tolla"
+
+[dependencies]
+tokio-proto = "0.1"
+tokio-core = "0.1"
+futures = "0.1"
+iron = "*"
+router = "*"
+log = "0.3"
+simplelog = "0.4.3"
+prost = "0.2.0"
+prost-derive = "0.2.0"
+bytes = "0.4"
+
+[dependencies.tolla_proto]
+path = "tolla_proto"
+
+[replace]
+"openssl-sys:0.9.20" = {path = "rust-openssl/openssl-sys"}
