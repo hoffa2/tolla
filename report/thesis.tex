@@ -1,0 +1,159 @@
+%!TEX root = thesis.tex
+
+%:-------------------------- Preamble -----------------------
+
+% Three languages are supported, which will be reflected in the logo on the front page. Pass the appropriate language
+% specified as a class option to uit-thesis. Passing any other languages supported by babel will result in the default
+% language on the frontpage. If no language is passed, the default is selected.
+%  - USenglish (default)
+%  - norsk
+%  - samin
+% The frontpage comes in two variants, Master's thesis and PhD. Master is default, use classoption 'phd' for the PhD version.
+\documentclass[USenglish]{uit-thesis}
+
+% Lorem ipsum
+\usepackage{lipsum}
+
+\makeglossaries
+
+% Add external glossaryentries
+\loadglsentries{acronyms}
+\newglossaryentry{thesis}
+{
+  name=thesis,
+  description={is a document submitted in support of candidature for an
+    academic degree or professional qualification presenting the author's
+    research and findings
+    },
+}
+\newglossaryentry{lage}
+{
+  name={long ass glossary entry},
+  description={is a long ass entry with a lot of text describing the properties of the glossary entry. Hopefully this spans some lines now.
+  },
+}
+
+
+\newcommand{\listdefinitionname}{My list of definitions}
+\newlistof{definition}{def}{\listdefinitionname}
+\newcommand{\definition}[1]{%
+  \refstepcounter{definition}%
+  \par\noindent\textbf{The Definition~\thedefinition. #1}%
+  \addcontentsline{def}{definition}
+    {\protect\numberline{\thechapter.\thedefinition}#1}\par%
+}
+
+\begin{document}
+
+%:-------------------------- Frontpage ------------------------
+
+\title{To be announces}
+\subtitle{Subtitle}			% Optional
+\author{Helge Hoff}
+\thesisfaculty{Faculty of Science and Technology \\ Department of Computer Science}
+\thesisprogramme{Master thesis in Computer Science … Month 20xx}
+%\ThesisFrontpageImage{example_image.jpg}	% Optional
+
+\maketitle
+
+%:-------------------------- Frontmatter -----------------------
+\frontmatter
+
+\begin{epigraph}
+\epigraphitem{}{Edsger Dijkstra}
+\epigraphitem{Beware of bugs in the above code;\\I have only proved it correct, not tried it.}{Donald Knuth}
+\end{epigraph}
+
+\begin{abstract}
+\lipsum[2-3]
+\end{abstract}
+
+\begin{acknowledgement}
+\lipsum[4-8]
+\end{acknowledgement}
+
+\tableofcontents
+
+\listofdefinition
+
+%:-------------------------- Mainmatter -----------------------
+\mainmatter
+
+\chapter{Introduction}
+
+\section{Problem Statement}
+
+
+\begin{quote}
+    Build a containerized system for acces
+\end{quote}
+
+\chapter{Background}
+\section{Data privacy \& Personal Data}
+Personal data is any information that can be used to identify to which individual it belongs.
+By that, an identifiable individual is one can be identified by identifiers such as name,
+location data, or online identifiers.
+
+Data privacy (or information privacy) 
+\section{General Data Protection Regulation}
+The new \gls{gdpr} was approved by the European Parliament on April 14 2016, and will replace the current
+data protection directive of 1995, in May 2018.
+Its intention is to address the current state of data privacy by transfering the power from
+service providers, namely application service providers and storage service providers,
+to individuals of The European Union, regardless of jurisdiction.
+By that, its aim is to protect all EU citezens from data-breaches leading to
+the disclosure or privacy in an increasingly data-driven world, which stands as
+contrary to the time in which the last directive was made.
+Although many principles of data privacy still hold,
+the new directive will enforce key changes to achieve the empowerment of end-users.
+The conditions for consent have been strengthened to the extent of which
+ambiquitus illegible terms and conditions are illegitimate and must be replaced
+by incontrovertible forms of consent; and it shall be as easy to give as to
+revoke consent.
+The directive presents the notion of \textit{Right to Access} which encompasses
+both the opportunity to access data belonging to you and retrieve the following information about
+the processing of personal data:
+\begin{itemize}
+    \item if and where the data is being processed
+    \item the purpose of processing
+    \item the categories of data concerned
+    \item to whom the personal data have been disclosed
+    \item whether any automated decision-making is involved
+\end{itemize}
+Strongly related to the \textit{Right of Access} is the right for a data subject
+retrieve or transfer the data provided in a \textit{\"machine readable format\"},
+which adheres to the primitives in a data-driven context.
+
+The control is further strengthened by enforcing \textit{Breach Notification} and
+\textit{Right to be forgotten (Right to erasure)}.
+The \textit{Right to be forgotten} is coupled with the conditions for consent,
+in which the act of consenting to the collection data must state the time period
+for which the data is to be stored, and at the end of which must be forgotten (Deleted).
+\textit{Breach Notification} is mandatory
+
+\textit{Data Privacy by Default} is at the core of the directive, and states
+that: \textit{any data controller shall implement appropriate technical and organizational
+measures for ensuring that, by default, only personal data which are necessary for each spesific
+purpose of the processing are processed}, or simply data minimization.
+This applies to both the retrieval and processing of data.
+A controller collecting data shall only collect data which are necessary for the intent
+of collecting that data.
+In addition to that, \gls{gdpr} adds to the notion of data minimization by classifying
+data having been collected for a purpose must fall under the \textit{Right to be Forgotten}
+if the purpose changes.
+
+
+
+All of these changes share the common objective of allowing citizens to
+be in control of their data.
+Failing to be compliant with any of the articles making up the
+directive will result in being penilized with fines up to $ 4\% $ of a company's annual turnover
+or 20 Million (whichever is greater), which can be substantial for most companies.
+\section{Containers \& Microservices}
+
+
+\chapter{Related work}
+
+
+\end{document}
+
