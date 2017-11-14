@@ -11,9 +11,6 @@
 % The frontpage comes in two variants, Master's thesis and PhD. Master is default, use classoption 'phd' for the PhD version.
 \documentclass[USenglish]{uit-thesis}
 
-% Lorem ipsum
-\usepackage{lipsum}
-
 \makeglossaries
 
 % Add external glossaryentries
@@ -47,7 +44,7 @@
 
 %:-------------------------- Frontpage ------------------------
 
-\title{To be announces}
+\title{Tolla - towards GDPR compliancy}
 \subtitle{Subtitle}			% Optional
 \author{Helge Hoff}
 \thesisfaculty{Faculty of Science and Technology \\ Department of Computer Science}
@@ -65,14 +62,14 @@
 \end{epigraph}
 
 \begin{abstract}
-\lipsum[2-3]
 \end{abstract}
 
 \begin{acknowledgement}
-\lipsum[4-8]
 \end{acknowledgement}
 
 \tableofcontents
+
+\printacronyms
 
 \listofdefinition
 
@@ -94,7 +91,7 @@ Personal data is any information that can be used to identify to which individua
 By that, an identifiable individual is one can be identified by identifiers such as name,
 location data, or online identifiers.
 
-Data privacy (or information privacy) 
+Data privacy (or information privacy)
 \section{General Data Protection Regulation}
 The new \gls{gdpr} was approved by the European Parliament on April 14 2016, and will replace the current
 data protection directive of 1995, in May 2018.
@@ -151,8 +148,109 @@ directive will result in being penilized with fines up to $ 4\% $ of a company's
 or 20 Million (whichever is greater), which can be substantial for most companies.
 \section{Containers \& Microservices}
 
-
 \chapter{Related work}
+
+
+\chapter{Design}
+\section{Isolation}
+To contextualize the methods to which \textit{Privacy By design} can be realized, we
+propose multiple solitions to data isolation, each of which having favourable characteristics.
+
+\subsection{Logical Seperation}
+The first method of isolation is Logical space seperation, which is implemented
+by many databases, both Relational and NOSQL.
+Logical space seperation can be realized through database views.
+This mechanism allows filtration of table content according to a certian criterion.
+I.e in multi-tenancy queries can be issued along with a tenant id used by the database
+to only disclose rows that are identified with the tenant id.
+This is, however, an approach vulnerable to pragrammatical errors and does not fit our
+multi-purpose solution of both having multi-tenancy and having the ability to do aggregates
+on data.
+
+\subsection{Physical Seperation}
+Physical seperation can be achieved by containerizing multiple databases where
+a single container holds the information identified to one user.
+The trade-offs here are inefficent utilization of space and resources compared to
+the security properties achieved.
+Running multiple containers (possibly thousands), one per user, saturates
+the host on which they run.
+Comparatively, having the seperation of user information by dockerization means
+that the data volumes used by each database are inaccessible by other containers.
+
+\subsection{Encryption}
+Another way of lowering the risks of disclosing data, is to encrypt user information
+and only allowing disclosure of that information (encryption) to processes that
+are granted access to it.
+There are multiple angles in which to create encryption based privacy.
+Reference uses ID-based encryption that allows process to decrypt data if and only if
+the process holds the information used to encrypt the data.
+Another newly introduced scheme is \gls{byoe}, sometimes reffered to as \gls{byok},
+where users provide their own public key-pair.
+Doing so allows user data to be encrypted at all time, and allowing only authorized
+processes to access data.
+
+\subsection{Solution}
+Each of these solutions have advantageous properties, however, supporting
+legacy application whilst retaining the required properties with regards to security we deem
+physical seperation as the direction in which to explore.
+The encryption scheme will be infeasible with regards to encrypting the contents of database.
+Having physical seperation, the threat of accidentally disclosing a user's information
+to other users.
+As depicted in, the data stores act as reference monitors that deny or accept request, and
+audits access to data.
+Therefore the solution we propose is a container-based data store with a granularity
+of per-container-access.
+
+\subsection{Assumptions on Architecture}
+Before giving a description of the system, we make the following assumptions.
+Having one containerized database per user we assume a unified schema accross
+all users.
+And we do not address the granularity or categories of data, meaning that
+a process is only either denied or granted access to data based on intent and not data category.
+Conclusively, a user 
+
+\section{Certificate-based Access Control}
+Mapping the high-level intents of a process to which a user consents are realized by
+leveraging the prevalent \gls{tls}.
+Utilizing a security mechanism that is already a part of any architecure gives
+the property of seamless intergration with legacy applications.
+
+The access control works by having a \gls{ca} delegating certificates in which the process'
+intent is stored.
+In that way, a \gls{tls} connection is directly coupled with an intent and can be
+handled accordingly.
+I.e if a user consents to his data being used for calculating sleep patterns, a \gls{tls}
+connection from a process having that as its intent will be granted access to the user's
+container; and if not processes having other intents will not have access to the user's container.
+This also fascilitates the compliance with \gls{gdpr} artice SOMETHING that all access and reasons
+for proccessing shall be logged such that the users are informed about what happends to their data.
+
+\section{Containerizing legacy applications}
+Conatinerizing legacy applications have been done to migrate
+such applications to the cloud \cite{7092950}.
+Integrating the access control scheme with legacy applications is done by
+building base-images from which applications are containerized.
+
+Containerizing a client (or processor) to fit system is done transparently upon
+initialization.
+Intents, along with meta-data bout the process, are written along with the building procedures
+of the application (Dockerfile).
+When a container starts running, a built in process from the base-image creates a certificate request
+from the information provided in the \textit{Dockerfile} and sent to the \gls{ca} to be signed.
+The end result is that three files are written to a directory: the public key-pair,
+the certificate of the \gls{ca} and the proccess' own certificate.
+Therefore, the only alterations to the application that is requires is from where
+these three files are read from.
+Thereby, no alternations to application logic related to recieving and writing data have
+to be made.
+
+
+\section{Architecture}
+
+
+
+\bibliography{citations}
+\bibliographystyle{ieeetr}
 
 
 \end{document}
