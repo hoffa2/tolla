@@ -35,7 +35,7 @@ fn main() {
         location: Some(LogLevel::Debug),
     };
     WriteLogger::init(
-        LogLevelFilter::Debug,
+        LogLevelFilter::Trace,
         log_conf,
         File::create("log.log").unwrap(),
     ).unwrap();
@@ -69,7 +69,7 @@ fn run_http() {
 
     router.get("/:user", handlers.dbquery, "get");
     router.post("/register", handlers.register, "register");
-    router.post("/rm", handlers.remove, "remove");
+    router.delete("/:user", handlers.remove, "remove");
 
     thread::spawn(move || {
         Iron::new(router).http("localhost:3001").unwrap();
@@ -100,7 +100,7 @@ fn run_client(addr: String, port: u16) {
 
     let mut msg = proto::FromClient::default();
     msg.msg = Some(proto::from_client::Msg::User(proto::NewUser {
-        userid: String::from("jonnebassen1"),
+        userid: String::from("jonnebassen2"),
 
         email: String::from("lol"),
     }));

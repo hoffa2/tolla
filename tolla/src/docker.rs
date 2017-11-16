@@ -23,15 +23,15 @@ impl StoreManager {
 
     // Start containers by id
     pub fn start_containers(&self, ids: Vec<String>) -> Result<(), String> {
-        let containers = self.deamon.containers();
+
         info!("starting containers");
-        for container_ids in ids {
-            let container = containers.get(&container_ids);
-            if let Err(err) = container.start() {
-                error!("{}", err.to_string());
-                return Err(err.to_string());
-            }
-            info!("Successfully started {}", container.id());
+        for container_id in ids {
+            //let container = containers.get(&container_id);
+            //if let Err(err) = container.start() {
+            //    error!("{}", err.to_string());
+            //    return Err(err.to_string());
+            //}
+            info!("Successfully started {}", container_id);
         }
 
         Ok(())
@@ -57,10 +57,12 @@ impl StoreManager {
     }
 
     // check container id exists
-    pub fn verify_container_id(&self, id: &String) -> Result<(), String> {
+    pub fn verify_container_id(&self, id: &String) -> Result<bool, String> {
         match self.container_by_id(id) {
             Err(err) => return Err(err.to_string()),
-            Ok(_) => return Ok(()),
+            Ok(container) => {
+                return Ok(container.is_some());
+            }
         }
     }
 

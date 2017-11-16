@@ -1,0 +1,8 @@
+language: rust
+rust: stable
+os: osx
+cache:
+  cargo: true
+script:
+- cargo run --manifest-path=systest/Cargo.toml
+- cargo test --manifest-path=openssl/Cargo.toml

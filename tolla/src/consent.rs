@@ -355,9 +355,10 @@ impl ConsentEngine {
 
     pub fn onboard_user(&self, id: &String) -> Result<(), String> {
 
-        if let Ok(_) = self.deamon.verify_container_id(id) {
-            error!("Container id already exists");
-            return Err(format!(""));
+        match self.deamon.verify_container_id(id) {
+            Ok(true) => return Err("user already exists".to_owned()),
+            Err(err) => return Err(err.to_string()),
+            Ok(false) => (),
         }
 
         if let Ok(_) = self.consent_based_view(id) {

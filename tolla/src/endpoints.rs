@@ -93,7 +93,7 @@ impl Handler for Register {
         };
 
         let router = self.router.clone();
-        if let Err(err) = router.lock().unwrap().deboard_user(&deserialized.id) {
+        if let Err(err) = router.lock().unwrap().onboard_user(&deserialized.id) {
             return Ok(Response::with((Status::BadRequest, err.to_string())));
         };
         Ok(Response::with(Status::Ok))
