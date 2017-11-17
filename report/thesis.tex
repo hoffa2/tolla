@@ -1,4 +1,4 @@
-%!TEX root = thesis.tex
+        l%!TEX root = thesis.tex
 
 %:-------------------------- Preamble -----------------------
 
@@ -139,33 +139,68 @@ In addition to that, \gls{gdpr} adds to the notion of data minimization by class
 data having been collected for a purpose must fall under the \textit{Right to be Forgotten}
 if the purpose changes.
 
-
-
 All of these changes share the common objective of allowing citizens to
 be in control of their data.
 Failing to be compliant with any of the articles making up the
 directive will result in being penilized with fines up to $ 4\% $ of a company's annual turnover
 or 20 Million (whichever is greater), which can be substantial for most companies.
 \section{Containers \& Microservices}
+Containers, in contrary to VM's, run directly on the host system, achieving virtualization
+by using isolation primitives implemented in the linux kernel \cite{Soltesz:2007:COS:1272998.1273025, 7095802}.
+In other words, containers sandbox processes from each other.
+Container are mostly known as lighweight VMs, mainly becuase they take up less space
+and can be regarded as isolated processes, and not needing to contain an entire Operating System.
+When bulding Microservices containers have been widely used because they have properties
+that are suitable for orchestrating, scaling, and decoupling several isolated processes into an application \cite{micro1}.
+
+The most used implementation of linux containers are dockers.
+Docker has a whole ecosystem for storing, deplying and building images.
+
+Security-wise containers are arguably not as strong as VMs, one of the reasons being
+that containers run with root priviliges, which imposes a potential attack vector.
+
+
+
 
 \chapter{Related work}
+\section{GDPR}
+Not much have been done on \gls{gdpr} compliant implementations.
+\cite{danishguy} presents a basic proof-of-concept \gls{gdpr}-compliant framework addressing
+traceability, \textit{Right to Access} and \textit{Right to Erasure}.
+To achieve these properties they attach meta-data (\textit{customer record}) to user identifiable data consisting of
+policies that apply to the data, time of creation (to assert lifespan), and
+whether the data is located at other controllers.
+Conclusively, their main contribution is a service that fascilitates
+the traceability of user data.
+
+\section{Legacy Applications in Containers}
 
 
 \chapter{Design}
 \section{Isolation}
 To contextualize the methods to which \textit{Privacy By design} can be realized, we
 propose multiple solitions to data isolation, each of which having favourable characteristics.
+Prior to that, there are two important requirements: prevent leaking (disclosing) data
+from one user to other users, and the extent to which the solution can be
+integrated with current infrastructure; that is, accomplish the level of isolation
+without changing the logic of data storage services.
+By that, we do not intend to create new ways of storing data (in a compliant manner),
+rather investigate the possibilites of transparently integrate \gls{gdpr} compliancy
+into data stores.
 
 \subsection{Logical Seperation}
 The first method of isolation is Logical space seperation, which is implemented
 by many databases, both Relational and NOSQL.
-Logical space seperation can be realized through database views.
-This mechanism allows filtration of table content according to a certian criterion.
+Logical space seperation can be realized through database views, which
+allow filtration of table content according to a certian criterion.
 I.e in multi-tenancy queries can be issued along with a tenant id used by the database
 to only disclose rows that are identified with the tenant id.
 This is, however, an approach vulnerable to pragrammatical errors and does not fit our
 multi-purpose solution of both having multi-tenancy and having the ability to do aggregates
 on data.
+In addition, it does not fit our goal of transparency either since using
+database views would require putting the isolation logic to clients by writing spesialized
+queries.
 
 \subsection{Physical Seperation}
 Physical seperation can be achieved by containerizing multiple databases where
@@ -207,13 +242,19 @@ Having one containerized database per user we assume a unified schema accross
 all users.
 And we do not address the granularity or categories of data, meaning that
 a process is only either denied or granted access to data based on intent and not data category.
-Conclusively, a user 
+The system consists of processes, each of which having a purpose for processing data.
+All of these purposes will be valid for the system, that is,
+the system is one single application and can not be divided into multiple applications
+with different sets of intentions.
 
 \section{Certificate-based Access Control}
 Mapping the high-level intents of a process to which a user consents are realized by
 leveraging the prevalent \gls{tls}.
 Utilizing a security mechanism that is already a part of any architecure gives
 the property of seamless intergration with legacy applications.
+
+Using certificate extentensions has prevously been explored to implement role-based access control \cite{7095802, 1189190}.
+We however, explore the use of certificate extensions to implement a intent-based access control.
 
 The access control works by having a \gls{ca} delegating certificates in which the process'
 intent is stored.
@@ -224,6 +265,28 @@ connection from a process having that as its intent will be granted access to th
 container; and if not processes having other intents will not have access to the user's container.
 This also fascilitates the compliance with \gls{gdpr} artice SOMETHING that all access and reasons
 for proccessing shall be logged such that the users are informed about what happends to their data.
+
+\begin{lstlisting}[frame=single, caption={Intent certificate. Some fields are left out for brievity}, label={lst:certificate}]
+    Data:
+  Version:  v3
+  Serial Number: 0x1
+    Signature Algorithm: sha256WithRSAEncryption
+  Issuer: CN=localhost, ST=TR, C=NO
+  Validity:
+     Not Before: Nov  1 18:01:29 2017 GMT
+     Not After : Nov 11 18:01:29 2017 GMT
+  Subject: CN=localhost, ST=TR, C=NO
+  Extensions:
+    Intent: Intention for processing
+\end{lstlisting}
+
+An example certificate of a processor is shown in listing \ref{lst:certificate}.
+The intent for processing is expressed as a certificate extension, where the
+intent can be of an arbitrary string which the \gls{ca} verifies.
+All processes in the system registers their intentions which are divided into two
+groups, collection and reading, respectively.
+Since our system can be viewed as a single application, all processes' intents
+are regigestered with the system and will be puproses to which users must consent.
 
 \section{Containerizing legacy applications}
 Conatinerizing legacy applications have been done to migrate
@@ -244,10 +307,59 @@ these three files are read from.
 Thereby, no alternations to application logic related to recieving and writing data have
 to be made.
 
-
 \section{Architecture}
 
+\subsection{Data stores}
+A data store, as mentioned earlier, is a container running an arbitrary data store
+with additional security logic.
+To minmize the contaner storage overhead we leverage a built-in docker feature.
+Docker calls this feature \textit{the image layer} and is a read-only layer of application code.
+This feature is a part of the image infrastructure of docker.
+An image is a lightweight, stand-alone, executable packages that includes everything
+needed to run a piece of software, and contains files relevent to the runtime of the software:
+code, dependencies, environmental variables, and config files.
+Whilst containers can be described as an instance of an image.
+A container on the other hand is a runtime instance of an image, completely isolated from the host environment, reading all software logic from the read-only layer,
+whilst all writes/updates are done to a writable layer spesific and private to that container.
+Therefor, docker makes it possible to run multiple containers, all having a physical size of zero upon start,
+without duplicating space (images).
+The virtual space however is the size of the underlying docker image.
+The only disk usage will therfore be determined by how much is written to it.
 
+
+\subsection{Logging}
+Artice 15 of the \gls{gdpr} says that users have right to obtain information
+about whether personal data concerning him or her are being processed.
+To fulfill that requirement all access to the data stores are gathered continously
+from all containers and appended to a log.
+I.e, if a process with a purpose A access the data of a user, it will be logged to
+the centralized log that is visible to users.
+
+\subsection{Container orchestrations}
+Docker exposes a remote client API accessible if configured.
+The \gls{api} allows the same operations as Docker's CLI application.
+With that capability we have created a orchestraion process managing the
+security and orchestration of the data stores.
+When a user wishes to register with the system the orchestration tool
+adds a container to the network from a shared image.
+The container is identified with that particular user and has full control over
+for which purposes the data is used, meaning that consents can be revoked or the
+container deleted at any time.
+
+The containers run in a sub-net which imposes a restriction that application containers
+can only access a data store if they reside in the same sub-net.
+The orchestration process also implements what we call a \textit{Consent engine}.
+The \textit{Consent engine} stores all logic that maps users to containers,
+containers to consents, and based the those determines access policies.
+I.e if we have consents $ [A, B, C] $ which are directly related to the purposes
+for which applications do processing.
+Meantion that all applications purposes are logged into the system and all those are
+to be consented. And the possibility of having ceveral consent engines to orchestrate
+multiple systems having different sets of purposes.
+
+\subsection{GDPR compliancy}
+
+\section{Datastores}
 
 \bibliography{citations}
 \bibliographystyle{ieeetr}
