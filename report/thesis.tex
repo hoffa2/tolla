@@ -85,15 +85,8 @@
     Build a containerized system for acces
 \end{quote}
 
-\chapter{Background}
-\section{Data privacy \& Personal Data}
-Personal data is any information that can be used to identify to which individual it belongs.
-By that, an identifiable individual is one can be identified by identifiers such as name,
-location data, or online identifiers.
-
-Data privacy (or information privacy)
-\section{General Data Protection Regulation}
-The new \gls{gdpr} was approved by the European Parliament on April 14 2016, and will replace the current
+\chapter{General Data Privacy Regulation}
+The new \gls{gdpr} \cite{regulation2016regulation} was approved by the European Parliament on April 14 2016, and will replace the current
 data protection directive of 1995, in May 2018.
 Its intention is to address the current state of data privacy by transfering the power from
 service providers, namely application service providers and storage service providers,
@@ -101,13 +94,27 @@ to individuals of The European Union, regardless of jurisdiction.
 By that, its aim is to protect all EU citezens from data-breaches leading to
 the disclosure or privacy in an increasingly data-driven world, which stands as
 contrary to the time in which the last directive was made.
+Article 4 of the directive contains a list of definitions or definition of terms.
+Most importantly, it gives the definition of personal data which it aims to protect:
+
+\definition{Personal data means any information relating to an identified or identifiable natural person;
+            an identifiable natural person is one who can be identified, directly or indirectly, in particular by reference
+            to an identifier.}
+
+I.e such identifiers are names, identification numbers, location data, etc.
+Fundamentally, any data that can be used to identify to whom the data belongs or from whom it was collected.
+
 Although many principles of data privacy still hold,
-the new directive will enforce key changes to achieve the empowerment of end-users.
-The conditions for consent have been strengthened to the extent of which
+the new directive will enforce key changes to achieve the empowerment of end-users' data.
+
+Article 7 strengthens the conditions for consent to the extent to which
 ambiquitus illegible terms and conditions are illegitimate and must be replaced
 by incontrovertible forms of consent; and it shall be as easy to give as to
 revoke consent.
-The directive presents the notion of \textit{Right to Access} which encompasses
+Retrieveing consent from a data subjects below the age of 16, in order to be lawful,
+require authorization by the holder of parental responsibility over the child (Article 8).
+
+The directive presents the notion of \textit{Right to Access} (Article 15) which encompasses
 both the opportunity to access data belonging to you and retrieve the following information about
 the processing of personal data:
 \begin{itemize}
@@ -144,7 +151,8 @@ be in control of their data.
 Failing to be compliant with any of the articles making up the
 directive will result in being penilized with fines up to $ 4\% $ of a company's annual turnover
 or 20 Million (whichever is greater), which can be substantial for most companies.
-\section{Containers \& Microservices}
+
+\chapter{Containers \& Microservices}
 Containers, in contrary to VM's, run directly on the host system, achieving virtualization
 by using isolation primitives implemented in the linux kernel \cite{Soltesz:2007:COS:1272998.1273025, 7095802}.
 In other words, containers sandbox processes from each other.
@@ -156,7 +164,39 @@ that are suitable for orchestrating, scaling, and decoupling several isolated pr
 The most used implementation of linux containers are dockers.
 Docker has a whole ecosystem for storing, deplying and building images.
 
-Security-wise containers are arguably not as strong as VMs, one of the reasons being
+
+\section{Docker Security}
+The core primitive, fascilitated by the linux kernel, of docker security is the limitation
+of capabilities a container process has.
+
+\begin{description}
+    \item[Process Isolation] Processes are isolated from one another by limiting their
+        interaction and view of other processes.
+        Spesifically, the mechanism by which this is achieve is PID \textit{namespaces}, which
+        are hierarchical namespaces that limits a process' view to that of only its children.
+    \item[Device Isolation] The Unix abstraction of hardware is special files acting as interfaces to what Unix calls devices.
+        I.e \textit{/dev/mem}, which controlls physical memory, if tampered with can cause damage to the host system.
+        Docker limits theses capabilities by utilizing \textit{Device Whitelist Controller} feature (within cgroups).
+    \item[IPC Isolation]
+    \item[Filesystem Isolation]
+        In order to achieve filesystem isolation Docker utilizes \textit{filesystem namespaces}.
+        \textit{filesystem namespaces} creates process spesific views of the filesystem and
+        restricts all mount operations to only take effect inside the container.
+        However, for a container be fully functional a couple of system files need to be mounted
+        into the view of a process, and to limit the attack surface a process these files are not
+        writeble nor can the process remount them.
+    \item[Network Isolation] Network isolation is the most important isolation of the former, as it can
+        prevent such as Man-in-the-Middle attack.
+        Docker achieves this by creating an independent network stack for each container, and therefore
+        each of which will have their own IP address, IP routing tables, and network devices.
+        This results in an abstraction in which a container can be viewed as its own host, and
+        all communication between them are accomplished through the Virtual Ethernet brigde (\textit{docker0}) in the host machine.
+\end{description}
+
+In addition to the isolation mechanisms listed above two linux kernel modules, namely SELinux and AppArmor,  provide primitives to
+further limit a containers access to its capabilities.
+
+Arguably, containers are not as secure as VMs, one of the reasons being
 that containers run with root priviliges, which imposes a potential attack vector.
 
 
@@ -175,6 +215,30 @@ the traceability of user data.
 
 
 \chapter{Design}
+\section{Interpreting GDPR}
+This capstone will address the core articles of the \gls{gdpr}:
+\textit{Data protection by design and by default} (Article 25), \textit{Right of access by the data subject} (Article 15),
+\textit{Right to restriction of processing} (Article 18), and to a certain extent \textit{Right to erasure} (Article 17).
+Addressing these Articles and translating their objective into compliant implementations is one of the
+contributions of this capstone.
+
+The take-away from Article 25 is that data protection shall be at the core of any data store.
+In other words, measures shall be taken, taking into account the cost of implementation, to
+reduce the risk of disclosing data and enforce data minimization.
+With regards to the action of data processing, the article also states:
+\textit{by default, only personal data which are necessary for each spesific purpose of the processing are processed.} which
+applies to the amount of personal data, the extent of their processing, the period of their storage and their accessibility.
+Enterpreting the article there are two main objectives which apply to two granularities of data.
+Firstly, with regards to data accessability for purposes of processing.
+Accessing data for a spesific purpose applies for the granularity of data in general.
+Meaning that if a process wants to process the data of a person it is either denied or granted access to it based on its intent,
+not having anything to do with pseudonymisation or in which way the data is altered in terms of security.
+Secondly, the other objective is how data is stored.
+Several security prinicples can be applied to personal data, i.e, encrypting or obfuscating
+certian fields which ultimately can be used to identify to whom the data belongs.
+
+
+
 \section{Isolation}
 To contextualize the methods to which \textit{Privacy By design} can be realized, we
 propose multiple solitions to data isolation, each of which having favourable characteristics.
