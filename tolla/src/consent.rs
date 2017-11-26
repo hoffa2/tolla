@@ -181,7 +181,7 @@ impl ConsentEngine {
 
     // Retrieve all tenant's ip addresses
     pub fn get_tenant_ips(&self) -> Result<Vec<String>, String> {
-        let coll = self.client.db("test").collection("views");
+        let coll = self.client.db("test").collection("view");
         let cursor = coll.find(None, None).map_err(|e| e.to_string())?;
         let mut ips = Vec::new();
 
@@ -228,7 +228,7 @@ impl ConsentEngine {
             return Err(err.to_string());
         };
 
-        let views = self.client.db("test").collection("views");
+        let views = self.client.db("test").collection("view");
         if let Err(err) = views.delete_one(doc! { "_id" => user_id }, None) {
             return Err(err.to_string());
         };
@@ -299,6 +299,7 @@ impl ConsentEngine {
 
         if let bson::Bson::Document(document) = serialized_view {
             if let Err(e) = views.insert_one(document, None) {
+                error!("Unable to register view: {}", e.to_string());
                 return Err(e.to_string());
             }
         }
@@ -400,13 +401,13 @@ impl ConsentEngine {
             "certificate.pem",
             "/config/certificate.pem"
         );
-        let key_path = format!("{}/{}:{}:Z", path, "key.pem", "/config/key.pem");
+        let key_path = format!("{}/{}:{}:Z", path, "keys.pem", "/config/keys.pem");
         let ca_path = format!("{}/{}:{}:Z", path, "CAcert.pem", "/config/CAcert.pem");
 
         let mut env = Vec::new();
 
         env.push("PEM_FOLDER=/config");
-        env.push("LISTEN_ADDR=3001");
+        env.push("LISTEN_ADDR=:8080");
         env.push("DB_ADDR=27017");
         env.push("CA_ADDR=8080");
 

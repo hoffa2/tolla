@@ -3,6 +3,8 @@ FROM rust:1.20.0
 WORKDIR /usr/src/client
 copy . .
 
-RUN cargo install
+RUN cargo build
 
-CMD ["client"]
+CMD ["target/debug/client"]
+
+

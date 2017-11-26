@@ -15,7 +15,6 @@ extern crate serde_derive;
 extern crate bson;
 extern crate mongodb;
 
-
 use prost::Message;
 use tokio_core::net::TcpStream;
 use tolla_proto::proto;
@@ -34,6 +33,7 @@ use std::fs::File;
 use bson::Bson;
 use mongodb::{Client, ClientOptions, ThreadedClient};
 use mongodb::db::ThreadedDatabase;
+use std::env;
 
 #[derive(Debug, Deserialize)]
 pub struct Ca {
@@ -81,17 +81,26 @@ fn dump_certificate(filename: &str, data: &Vec<u8>) {
 fn setup_mongod(certs: &Certs, address: String) {
     let options = ClientOptions::with_ssl(&certs.ca, &certs.cert, &certs.key, true);
 
-    let client = Client::connect_with_options(&address, 8080, options).unwrap();
+    let addr = env::var("DB_ADDRESS").unwrap();
+
+    println!("Connecting to {}", addr);
+
+    let client = Client::connect_with_options(&addr, 8080, options).unwrap();
+    println!("came here");
     let views = client.db("test").collection("view");
+    println!("came here2");
+
     let doc =
         doc! {
         "title": "Jaws",
         "array": [ 1, 2, 3 ],
     };
+    println!("came here3");
 
     if let Err(e) = views.insert_one(doc.clone(), None) {
         println!("{}", e.to_string());
     }
+    println!("came here 4");
 }
 
 fn main() {
@@ -136,11 +145,8 @@ impl TollaClient {
         let certificate = self.issue_cert_request(&conf.ca, &conf.process, &pkey)?;
 
         if let proto::to_client::Msg::Certificate(c) = certificate.msg.unwrap() {
-            c.request.encode(buf).unwrap();
-            dump_certificate("cert.pem", &buf);
-            buf.clear();
-            c.root_cert.encode(buf).unwrap();
-            dump_certificate("ca.pem", &buf);
+            dump_certificate("cert.pem", &c.request);
+            dump_certificate("ca.pem", &c.root_cert);
         }
 
         let pkey_pem = pkey.private_key_to_pem().map_err(|e| e.to_string())?;

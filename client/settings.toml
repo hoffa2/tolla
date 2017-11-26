@@ -3,7 +3,7 @@ intent = "eeey"
 country = "NO"
 state = "TR"
 org = "ifi"
-common_name = "localhost"
+common_name = "process"
 
 [ca]
 address = "127.0.0.1"

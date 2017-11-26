@@ -33,6 +33,12 @@ impl Authority {
         let mut builder = X509Builder::new().unwrap();
         builder.set_pubkey(&keypair).unwrap();
 
+        let expiration = Asn1Time::days_from_now(365).unwrap();
+        builder.set_not_after(&expiration).unwrap();
+
+        let valid = Asn1Time::days_from_now(0).unwrap();
+        builder.set_not_before(&valid).unwrap();
+
         let mut x509_name = X509NameBuilder::new().unwrap();
         x509_name.append_entry_by_text("C", "NO").unwrap();
         x509_name.append_entry_by_text("ST", "TR").unwrap();
@@ -42,7 +48,21 @@ impl Authority {
 
         builder.set_subject_name(&x509_name).unwrap();
 
+        builder.set_issuer_name(&x509_name).unwrap();
+
         let ca_ext = X509Extension::new(None, None, "basicConstraints", "CA:TRUE").unwrap();
+
+        builder.append_extension(ca_ext).unwrap();
+
+        let ca_ext =
+            X509Extension::new_nid(None, None, nid::KEY_USAGE, "digitalSignature, keyCertSign")
+                .unwrap();
+
+        builder.append_extension(ca_ext).unwrap();
+
+        let ca_ext =
+            X509Extension::new_nid(None, None, nid::EXT_KEY_USAGE, "serverAuth, clientAuth")
+                .unwrap();
 
         builder.append_extension(ca_ext).unwrap();
 
@@ -82,13 +102,14 @@ impl Authority {
         builder.set_pubkey(&keypair).unwrap();
 
         builder.set_version(3).map_err(|e| e.to_string())?;
+
         let bignum = BigNum::from_u32(3).map_err(|e| e.to_string())?;
         let serial_number = bignum.to_asn1_integer().map_err(|e| e.to_string())?;
         builder.set_serial_number(&serial_number).map_err(
             |e| e.to_string(),
         )?;
 
-        let expiration = Asn1Time::days_from_now(10).unwrap();
+        let expiration = Asn1Time::days_from_now(365).unwrap();
         builder.set_not_after(&expiration).unwrap();
 
         let valid = Asn1Time::days_from_now(0).unwrap();
@@ -104,14 +125,25 @@ impl Authority {
         x509_name.append_entry_by_text("O", "IFI").map_err(
             |e| e.to_string(),
         )?;
-        x509_name.append_entry_by_text("CN", "localhost").map_err(
-            |e| {
-                e.to_string()
-            },
-        )?;
+        x509_name.append_entry_by_text("CN", "user").map_err(|e| {
+            e.to_string()
+        })?;
         let x509_name = x509_name.build();
 
         builder.set_subject_name(&x509_name).unwrap();
+
+        let mut x509_name = X509NameBuilder::new().unwrap();
+        x509_name.append_entry_by_text("C", "NO").unwrap();
+        x509_name.append_entry_by_text("ST", "TR").unwrap();
+        x509_name.append_entry_by_text("O", "IFI").unwrap();
+        x509_name.append_entry_by_text("CN", "localhost").unwrap();
+        let x509_name = x509_name.build();
+
+        builder.set_issuer_name(&x509_name).unwrap();
+        let key = X509Extension::new_nid(None, None, nid::EXT_KEY_USAGE, "serverAuth").unwrap();
+
+        builder.append_extension(key).unwrap();
+
 
         builder
             .sign(&self.key_pair, MessageDigest::sha256())
@@ -145,7 +177,7 @@ impl Authority {
         let req = X509Req::from_pem(buf).unwrap();
         let pubkey = req.public_key().unwrap();
 
-        let expiration = Asn1Time::days_from_now(10).unwrap();
+        let expiration = Asn1Time::days_from_now(365).unwrap();
         cert.set_not_after(&expiration).unwrap();
 
         let valid = Asn1Time::days_from_now(0).unwrap();
@@ -194,6 +226,19 @@ impl Authority {
             )
             .map_err(|e| e.to_string())?;
 
+        let x509_name = x509_name.build();
+
+        cert.set_subject_name(&x509_name).unwrap();
+
+        let mut x509_name = X509NameBuilder::new().unwrap();
+        x509_name.append_entry_by_text("C", "NO").unwrap();
+        x509_name.append_entry_by_text("ST", "TR").unwrap();
+        x509_name.append_entry_by_text("O", "IFI").unwrap();
+        x509_name.append_entry_by_text("CN", "localhost").unwrap();
+        let x509_name = x509_name.build();
+
+        cert.set_issuer_name(&x509_name).unwrap();
+
         let subject_id = Uuid::new_v4();
         let ext = X509Extension::new_nid(
             None,
@@ -201,6 +246,13 @@ impl Authority {
             nid::SUBJECT_KEY_IDENTIFIER,
             &subject_id.simple().to_string(),
         ).map_err(|e| e.to_string())?;
+
+        let key = X509Extension::new_nid(None, None, nid::KEY_USAGE, "digitalSignature").unwrap();
+        cert.append_extension(key).unwrap();
+
+        let key = X509Extension::new_nid(None, None, nid::EXT_KEY_USAGE, "clientAuth").unwrap();
+
+        cert.append_extension(key).unwrap();
 
         cert.append_extension(ext).map_err(|e| e.to_string())?;
 
@@ -215,6 +267,8 @@ impl Authority {
         cert.sign(&self.key_pair, MessageDigest::sha256()).unwrap();
 
         let serialized = cert.build().to_pem().map_err(|e| e.to_string())?;
+
+        println!("{}", String::from_utf8_lossy(serialized.as_slice()));
 
         let intent = Intent {
             id: subject_id.simple().to_string(),
@@ -273,6 +327,8 @@ mod test {
         let req = req.build();
 
         let pem_raw = req.to_pem().unwrap();
+
+        println!("{}", String::from(pem_raw));
 
         let res = authority.sign_certificate(&pem_raw).unwrap();
 

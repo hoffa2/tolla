@@ -72,6 +72,7 @@ impl StoreManager {
         contents: HashMap<&str, &mut BytesMut>,
         dirname: &String,
     ) -> Result<(), String> {
+        info!("Creating dir {}", dirname);
         if let Err(err) = DirBuilder::new().recursive(true).create(dirname) {
             return Err(err.to_string());
         }
@@ -81,6 +82,7 @@ impl StoreManager {
                 Ok(file) => file,
                 Err(err) => return Err(err.to_string()),
             };
+            info!("Creating file {}/{}", dirname, filename);
 
             if let Err(err) = file.write_all(content) {
                 return Err(err.to_string());

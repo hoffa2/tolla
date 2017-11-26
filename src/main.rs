@@ -35,7 +35,7 @@ fn main() {
         location: Some(LogLevel::Debug),
     };
     WriteLogger::init(
-        LogLevelFilter::Trace,
+        LogLevelFilter::Debug,
         log_conf,
         File::create("log.log").unwrap(),
     ).unwrap();
@@ -48,7 +48,7 @@ fn main() {
 
     match args[1].as_ref() {
         "http" => run_http(),
-        "client" => run_client(String::from("0.0.0.0"), 8900),
+        "client" => run_client(String::from("0.0.0.0"), 8900, args[2].as_ref()),
         _ => println!("Wrong"),
     }
 }
@@ -85,7 +85,7 @@ fn run_http() {
     });
 }
 
-fn run_client(addr: String, port: u16) {
+fn run_client(addr: String, port: u16, name: &str) {
     // Sleep such that server has time to get up and running
     thread::sleep(time::Duration::from_millis(100));
 
@@ -100,7 +100,7 @@ fn run_client(addr: String, port: u16) {
 
     let mut msg = proto::FromClient::default();
     msg.msg = Some(proto::from_client::Msg::User(proto::NewUser {
-        userid: String::from("jonnebassen2"),
+        userid: String::from(name),
 
         email: String::from("lol"),
     }));
