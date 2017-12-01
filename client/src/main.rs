@@ -14,6 +14,8 @@ extern crate serde_derive;
 #[macro_use(bson, doc)]
 extern crate bson;
 extern crate mongodb;
+extern crate time;
+extern crate rand;
 
 use prost::Message;
 use tokio_core::net::TcpStream;
@@ -33,7 +35,13 @@ use std::fs::File;
 use bson::Bson;
 use mongodb::{Client, ClientOptions, ThreadedClient};
 use mongodb::db::ThreadedDatabase;
+use mongodb::common::WriteConcern;
+use mongodb::CommandType;
 use std::env;
+use time::{Duration, PreciseTime};
+use rand::*;
+use std::collections::HashMap;
+
 
 #[derive(Debug, Deserialize)]
 pub struct Ca {
@@ -82,25 +90,51 @@ fn setup_mongod(certs: &Certs, address: String) {
     let options = ClientOptions::with_ssl(&certs.ca, &certs.cert, &certs.key, true);
 
     let addr = env::var("DB_ADDRESS").unwrap();
+    let port = env::var("DB_PORT").unwrap();
+
+
+    let db_port = port.parse::<u16>().unwrap();
 
     println!("Connecting to {}", addr);
 
-    let client = Client::connect_with_options(&addr, 8080, options).unwrap();
+    let client = Client::connect_with_options(&addr, db_port, options).unwrap();
     println!("came here");
     let views = client.db("test").collection("view");
     println!("came here2");
 
-    let doc =
-        doc! {
-        "title": "Jaws",
-        "array": [ 1, 2, 3 ],
-    };
-    println!("came here3");
 
-    if let Err(e) = views.insert_one(doc.clone(), None) {
-        println!("{}", e.to_string());
+    let sizes = vec![64, 128, 256, 512, 1024, 2048, 4096];
+
+    let mut writeConcern = WriteConcern::new();
+
+    writeConcern.fsync = true;
+
+
+    let mut measurements = HashMap::new();
+    for size in sizes {
+        let rstr: String = rand::thread_rng().gen_iter::<char>().take(size).collect();
+        let doc =
+            doc! {
+                    "title": rstr.clone(),
+                };
+
+        if let Err(e) = views.insert_one(doc.clone(), None) {
+            println!("{}", e.to_string());
+        }
+        let mut time = Vec::new();
+        for x in 0..100 {
+            let doc = doc! {"title": rstr.clone()};
+            let now = PreciseTime::now();
+            let docu = views
+                .find_one_with_command_type(Some(doc.clone()), None, CommandType::Find)
+                .unwrap()
+                .unwrap();
+            time.push(now.to(PreciseTime::now()).num_milliseconds());
+        }
+        measurements.insert(size, time);
     }
-    println!("came here 4");
+
+    println!("{:?}", measurements);
 }
 
 fn main() {

@@ -6,7 +6,9 @@ authors = ["hoffa2 <helhof@online.no>"]
 [dependencies]
 config = "0.7"
 serde_derive = "*"
+time = "0.1"
 serde = "*"
+rand = "0.3"
 bytes = "0.4"
 tokio-core = "0.1.9"
 tokio-io = "0.1"

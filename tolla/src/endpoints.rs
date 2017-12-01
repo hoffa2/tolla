@@ -7,10 +7,12 @@ use std::str;
 use serde_json;
 use iron::status::Status;
 use consent::ConsentEngine;
+use urlencoded::UrlEncodedQuery;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct User {
     pub id: String,
+    pub purposes: Vec<String>,
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Query {
@@ -24,6 +26,7 @@ pub struct Handlers {
     pub dbquery: QueryHandler,
     pub register: Register,
     pub remove: Remove,
+    pub lease: Lease,
 }
 
 impl Handlers {
@@ -32,6 +35,7 @@ impl Handlers {
             dbquery: QueryHandler::new(router.clone()),
             register: Register::new(router.clone()),
             remove: Remove::new(router.clone()),
+            lease: Lease::new(router.clone()),
         }
     }
 }
@@ -45,6 +49,10 @@ pub struct Register {
 }
 
 pub struct Remove {
+    router: Arc<Mutex<ConsentEngine>>,
+}
+
+pub struct Lease {
     router: Arc<Mutex<ConsentEngine>>,
 }
 
@@ -93,7 +101,11 @@ impl Handler for Register {
         };
 
         let router = self.router.clone();
-        if let Err(err) = router.lock().unwrap().onboard_user(&deserialized.id) {
+        if let Err(err) = router.lock().unwrap().onboard_user(
+            &deserialized.id,
+            deserialized.purposes,
+        )
+        {
             return Ok(Response::with((Status::BadRequest, err.to_string())));
         };
         Ok(Response::with(Status::Ok))
@@ -119,5 +131,61 @@ impl Handler for Remove {
             return Ok(Response::with((Status::BadRequest, err.to_string())));
         };
         Ok(Response::with(Status::Ok))
+    }
+}
+
+
+
+impl Lease {
+    pub fn new(router: Arc<Mutex<ConsentEngine>>) -> Lease {
+        Lease { router: router }
+    }
+}
+
+impl Handler for Lease {
+    fn handle(&self, req: &mut Request) -> IronResult<Response> {
+
+        let query_params = match req.get_ref::<UrlEncodedQuery>() {
+            Ok(hashmap) => hashmap,
+            Err(err) => return Ok(Response::with((Status::BadRequest, err.to_string()))),
+        };
+
+        let user = match query_params.get("user") {
+            Some(user) => user,
+            None => {
+                return Ok(Response::with(
+                    (Status::BadRequest, "No user in query".to_string()),
+                ))
+            }
+        };
+
+        let intent = match query_params.get("intent") {
+            Some(intent) => intent,
+            None => {
+                return Ok(Response::with(
+                    (Status::BadRequest, "No intent in query".to_string()),
+                ))
+            }
+        };
+
+        let serial_number = match user[0].parse::<u32>() {
+            Err(err) => return Ok(Response::with((Status::BadRequest, err.to_string()))),
+            Ok(serial_number) => serial_number,
+        };
+
+        let router = self.router.clone();
+        let consent = match router.lock().unwrap().consent_by_serial_num(serial_number) {
+            Err(err) => return Ok(Response::with((Status::BadRequest, err.to_string()))),
+            Ok(consent) => consent,
+        };
+
+        match consent.purpose.contains(&intent[0]) {
+            true => return Ok(Response::with(Status::Ok)),
+            false => {
+                return Ok(Response::with(
+                    (Status::Forbidden, format!("Consents did not match")),
+                ))
+            }
+        }
     }
 }

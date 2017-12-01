@@ -1,22 +1,21 @@
 use bson;
 use mongodb::{Client, ThreadedClient};
 use mongodb::db::ThreadedDatabase;
-use std::time::Duration;
 use tolla_proto::proto;
-use chrono::prelude::*;
 use std::collections::HashMap;
 use bytes::BytesMut;
 use ca::Authority;
 use docker;
 use std::env;
 
+// Describes a user and his consents
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Consent {
     #[serde(rename = "_id")]
     pub id: String,
+    // used to cross-reference the id with certificate
+    pub serial_number: u32,
     pub purpose: Vec<String>,
-    pub lifetime: Duration,
-    pub aquired: DateTime<Utc>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -121,12 +120,12 @@ impl ConsentEngine {
         info!("Got message {:?}", inner);
 
         let result = match inner {
+            // Not used
             proto::from_client::Msg::Consent(c) => {
                 let consent = Consent {
+                    serial_number: 0,
                     id: c.id,
                     purpose: c.purpose,
-                    lifetime: Duration::new(c.lifetime, 0),
-                    aquired: Utc::now(),
                 };
                 self.add_consent(&consent)
             }
@@ -137,7 +136,9 @@ impl ConsentEngine {
                 };
                 self.add_intent(&intent)
             }
-            proto::from_client::Msg::User(u) => self.onboard_user(&u.userid),
+            proto::from_client::Msg::User(u) => {
+                self.onboard_user(&u.userid, vec!["static".to_string()])
+            }
             proto::from_client::Msg::Certificaterequest(r) => {
                 match self.handle_cert_request(r) {
                     Ok(cert) => {
@@ -252,6 +253,24 @@ impl ConsentEngine {
         Ok(consent)
     }
 
+    pub fn consent_by_serial_num(&self, serial_num: u32) -> Result<Consent, String> {
+        let consents = self.client.db("test").collection("consents");
+
+        let consent_doc =
+            match consents.find_one(Some(doc! { "serial_number" => serial_num }), None) {
+                Ok(c) => c.unwrap(),
+                Err(err) => return Err(err.to_string()),
+            };
+
+        let consent = match bson::from_bson(bson::Bson::Document(consent_doc)) {
+            Ok(c) => c,
+            Err(err) => return Err(err.to_string()),
+        };
+
+        Ok(consent)
+
+    }
+
     pub fn add_intent(&self, intent: &Intent) -> Result<(), String> {
         let serialized_intent = match bson::to_bson(intent) {
             Ok(res) => res,
@@ -354,8 +373,7 @@ impl ConsentEngine {
         return Err(String::from("could not find it"));
     }
 
-    pub fn onboard_user(&self, id: &String) -> Result<(), String> {
-
+    pub fn onboard_user(&self, id: &String, purposes: Vec<String>) -> Result<(), String> {
         match self.deamon.verify_container_id(id) {
             Ok(true) => return Err("user already exists".to_owned()),
             Err(err) => return Err(err.to_string()),
@@ -371,7 +389,7 @@ impl ConsentEngine {
         let mut certificate = BytesMut::new();
 
 
-        self.authority.create_db_certificate(
+        let serial_number = self.authority.create_db_certificate(
             &mut key,
             &mut certificate,
         )?;
@@ -412,7 +430,7 @@ impl ConsentEngine {
         env.push("CA_ADDR=8080");
 
         let res = self.deamon.new_container(
-            &String::from("tenant"),
+            &String::from("tenant_baseline"),
             id,
             &vec![&cert_path as &str, &key_path as &str, &ca_path as &str],
             env,
@@ -432,6 +450,13 @@ impl ConsentEngine {
                 return Err(err);
             }
         }
+
+        self.add_consent(&Consent {
+            id: id.clone(),
+            serial_number: serial_number,
+            purpose: purposes.clone(),
+        })?;
+
         Ok(())
     }
 
@@ -441,7 +466,10 @@ impl ConsentEngine {
             req.intent,
         ) {
             Ok(c) => c,
-            Err(e) => return Err(e.to_string()),
+            Err(e) => {
+                println!("{}", e.to_string());
+                return Err(e.to_string());
+            }
         };
 
         self.add_intent(&intent)?;

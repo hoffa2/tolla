@@ -70,6 +70,7 @@ fn run_http() {
     router.get("/:user", handlers.dbquery, "get");
     router.post("/register", handlers.register, "register");
     router.delete("/:user", handlers.remove, "remove");
+    router.get("/lease/:", handlers.lease, "remove");
 
     thread::spawn(move || {
         Iron::new(router).http("localhost:3001").unwrap();

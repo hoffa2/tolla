@@ -9,6 +9,7 @@ use uuid::Uuid;
 use bytes::{BufMut, BytesMut};
 use consent::Intent;
 use tolla_proto::proto;
+use rand::random;
 
 // Structure storing the ca's
 // asymetric keypair
@@ -87,7 +88,7 @@ impl Authority {
         &self,
         keys: &mut BytesMut,
         cert: &mut BytesMut,
-    ) -> Result<(), String> {
+    ) -> Result<u32, String> {
         let rsa = match Rsa::generate(1024) {
             Ok(kp) => kp,
             Err(e) => return Err(e.to_string()),
@@ -103,7 +104,9 @@ impl Authority {
 
         builder.set_version(3).map_err(|e| e.to_string())?;
 
-        let bignum = BigNum::from_u32(3).map_err(|e| e.to_string())?;
+        let rand_num = random::<u32>();
+
+        let bignum = BigNum::from_u32(rand_num).map_err(|e| e.to_string())?;
         let serial_number = bignum.to_asn1_integer().map_err(|e| e.to_string())?;
         builder.set_serial_number(&serial_number).map_err(
             |e| e.to_string(),
@@ -163,7 +166,7 @@ impl Authority {
         cert.put_slice(x509_pem.as_slice());
         keys.put_slice(keys_pem.as_slice());
 
-        Ok(())
+        Ok((rand_num))
     }
 
     // Create an identity certificate from ceritficate request.
@@ -257,10 +260,14 @@ impl Authority {
         cert.append_extension(ext).map_err(|e| e.to_string())?;
 
         let mut s = String::from(intent.clone());
-        s.insert_str(0, "otherName:2.5.29.17;UTF8:");
+        s.insert_str(0, "otherName:1.3.6.1.4.1.99;UTF8:");
 
-        let ext = X509Extension::new_nid(None, None, nid::SUBJECT_ALT_NAME, &s)
-            .map_err(|e| e.to_string())?;
+        let ext = X509Extension::new_nid(
+            None,
+            Some(&cert.x509v3_context(None, None)),
+            nid::SUBJECT_ALT_NAME,
+            &s,
+        ).map_err(|e| e.to_string())?;
 
         cert.append_extension(ext).map_err(|e| e.to_string())?;
 

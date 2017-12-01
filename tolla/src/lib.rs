@@ -25,8 +25,9 @@ extern crate url;
 extern crate uuid;
 extern crate openssl;
 extern crate tolla_proto;
-
 extern crate bytes;
+extern crate urlencoded;
+extern crate rand;
 
 
 // Public modules
