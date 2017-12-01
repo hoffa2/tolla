@@ -48,13 +48,14 @@ type OtherName struct {
 }
 
 func (l *Lease) Expired() bool {
+	// fix: Please enable a configurable lease timeout
 	return time.Since(l.leaseStart).Seconds() > 10
 }
 
 func (p *Proxy) assertPermissions(intent string) error {
 	var values url.Values
 
-	values.Add("intent", "intent")
+	values.Add("intent", intent)
 	values.Add("user", fmt.Sprintf("%d", p.serialNumber))
 
 	url, err := url.Parse(p.caAddr)

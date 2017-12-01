@@ -221,7 +221,7 @@ impl ConsentEngine {
         Ok(())
     }
 
-    // add a user consent
+    // Remove user by id
     pub fn remove_user(&self, user_id: &String) -> Result<(), String> {
         let consents = self.client.db("test").collection("consents");
 
@@ -253,6 +253,7 @@ impl ConsentEngine {
         Ok(consent)
     }
 
+    // Retrieve a consent by its serial number
     pub fn consent_by_serial_num(&self, serial_num: u32) -> Result<Consent, String> {
         let consents = self.client.db("test").collection("consents");
 
@@ -427,6 +428,7 @@ impl ConsentEngine {
         env.push("PEM_FOLDER=/config");
         env.push("LISTEN_ADDR=:8080");
         env.push("DB_ADDR=27017");
+        // should contain hostname of CA
         env.push("CA_ADDR=8080");
 
         let res = self.deamon.new_container(
