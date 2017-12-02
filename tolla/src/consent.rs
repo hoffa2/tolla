@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use bytes::BytesMut;
 use ca::Authority;
 use docker;
-use std::env;
 
 // Describes a user and his consents
 #[derive(Serialize, Deserialize, Debug)]
@@ -14,7 +13,7 @@ pub struct Consent {
     #[serde(rename = "_id")]
     pub id: String,
     // used to cross-reference the id with certificate
-    pub serial_number: u32,
+    pub serial_number: i32,
     pub purpose: Vec<String>,
 }
 
@@ -407,36 +406,29 @@ impl ConsentEngine {
         files.insert("keys.pem", &mut key);
         files.insert("CAcert.pem", &mut ca_cert);
 
-        let mut absolute_path = env::current_dir().map_err(|e| e.to_string())?;
-        absolute_path.push(id);
+        let mut absolute_path = String::from("/tmp/certificates/");
+        absolute_path.push_str(id);
 
-        let path = absolute_path.into_os_string().into_string().unwrap();
+        self.deamon.new_mountdir(files, &absolute_path)?;
 
-        self.deamon.new_mountdir(files, &path)?;
-
-        let cert_path = format!(
-            "{}/{}:{}:Z",
-            path,
-            "certificate.pem",
-            "/config/certificate.pem"
-        );
-        let key_path = format!("{}/{}:{}:Z", path, "keys.pem", "/config/keys.pem");
-        let ca_path = format!("{}/{}:{}:Z", path, "CAcert.pem", "/config/CAcert.pem");
+        //let cert_path = format!(
+        //    "{}/{}:{}:Z",
+        //    path,
+        //    "certificate.pem",
+        //    "/config/certificate.pem"
+        //);
+        //let key_path = format!("{}/{}:{}:Z", path, "keys.pem", "/config/keys.pem");
+        //let ca_path = format!("{}/{}:{}:Z", path, "CAcert.pem", "/config/CAcert.pem");
 
         let mut env = Vec::new();
 
-        env.push("PEM_FOLDER=/config");
-        env.push("LISTEN_ADDR=:8080");
-        env.push("DB_ADDR=27017");
+        env.push(format!("PEM_FOLDER=/tmp/certificates/{}", id));
+        env.push("LISTEN_ADDR=:8080".to_string());
+        env.push("DB_ADDR=27017".to_string());
         // should contain hostname of CA
-        env.push("CA_ADDR=8080");
+        env.push("CA_ADDR=8080".to_string());
 
-        let res = self.deamon.new_container(
-            &String::from("tenant_baseline"),
-            id,
-            &vec![&cert_path as &str, &key_path as &str, &ca_path as &str],
-            env,
-        );
+        let res = self.deamon.new_container(&String::from("tenant"), id, env);
 
         match res {
             Ok(x) => {
@@ -455,7 +447,7 @@ impl ConsentEngine {
 
         self.add_consent(&Consent {
             id: id.clone(),
-            serial_number: serial_number,
+            serial_number: serial_number as i32,
             purpose: purposes.clone(),
         })?;
 

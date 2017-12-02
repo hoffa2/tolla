@@ -146,16 +146,14 @@ fn main() {
     let conf = settings.try_into::<Settings>().unwrap();
     let mut buf = Vec::new();
 
-    if let Err(_) = File::open("cert.pem") {
-        tolla_client.retrieve_certificate(&conf, &mut buf).unwrap();
-    }
+    tolla_client.retrieve_certificate(&conf, &mut buf).unwrap();
 
     let mut msg = proto::FromClient::default();
     msg.msg = Some(proto::from_client::Msg::Requestips(true));
 
-    let socket_addr: SocketAddr = format!("{}:{}", conf.ca.address, conf.ca.port)
-        .parse()
-        .unwrap();
+    let addr = env::var("CA_ADDRESS").unwrap();
+
+    let socket_addr: SocketAddr = format!("{}:{}", addr, conf.ca.port).parse().unwrap();
 
     let result = tolla_client.send_protorequest(&socket_addr, msg);
 
@@ -239,9 +237,8 @@ impl TollaClient {
             Err(err) => return Err(err.to_string()),
         };
 
-        let socket_addr: SocketAddr = format!("{}:{}", cert_auth.address, cert_auth.port)
-            .parse()
-            .unwrap();
+        let addr = env::var("CA_ADDRESS").unwrap();
+        let socket_addr: SocketAddr = format!("{}:{}", addr, cert_auth.port).parse().unwrap();
 
         let mut msg = proto::FromClient::default();
         msg.msg = Some(proto::from_client::Msg::Certificaterequest(

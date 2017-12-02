@@ -17,7 +17,8 @@ impl StoreManager {
     // Connect to the docker deamon
     pub fn new(host: &String) -> StoreManager {
         let url = Url::parse(host).unwrap();
-        let deamon = Docker::host(url);
+        println!("{}", url);
+        let deamon = Docker::new();
         StoreManager { deamon: deamon }
     }
 
@@ -107,17 +108,19 @@ impl StoreManager {
         &self,
         image: &str,
         name: &str,
-        volumes: &Vec<&str>,
-        env: Vec<&str>,
+        env: Vec<String>,
     ) -> Result<(String, String), String> {
         let containers = self.deamon.containers();
 
         let mut opts = ContainerOptionsBuilder::new(image);
 
-        opts.env(env);
+        let v2: Vec<&str> = env.iter().map(|s| &**s).collect();
+
+        opts.env(v2);
         opts.name(name);
 
-        opts.volumes(volumes.clone().to_vec());
+        //opts.volumes(volumes.clone().to_vec());
+        opts.volumes_from(vec!["tolla"]);
 
         if let Err(err) = containers.create(&opts.build()) {
             error!("{}", err.to_string());

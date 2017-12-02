@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -53,12 +54,12 @@ func (l *Lease) Expired() bool {
 }
 
 func (p *Proxy) assertPermissions(intent string) error {
-	var values url.Values
+	values := url.Values{}
 
 	values.Add("intent", intent)
 	values.Add("user", fmt.Sprintf("%d", p.serialNumber))
 
-	url, err := url.Parse(p.caAddr)
+	url, err := url.Parse(fmt.Sprintf("http://172.17.0.7:3001/lease/"))
 	if err != nil {
 		// Abandon Ship?
 		return err
@@ -249,12 +250,26 @@ func main() {
 		os.Exit(1)
 	}
 
+	raw, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", pemFolder, "certificate.pem"))
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
+
+	block, _ := pem.Decode(raw)
+	serverCert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
+
 	clientCertPool := x509.NewCertPool()
 	clientCertPool.AppendCertsFromPEM(caCert)
 
 	proxy := &Proxy{
-		serialNumber: cert.Leaf.SerialNumber.Uint64(),
+		serialNumber: serverCert.SerialNumber.Uint64(),
 		portIncoming: portIncoming,
+		httpClient:   &http.Client{},
 		dbAddr:       dbAddr,
 		caAddr:       caAddr,
 		connPool:     make(map[string]*tls.Conn),

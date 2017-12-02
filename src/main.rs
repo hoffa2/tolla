@@ -54,8 +54,13 @@ fn main() {
 }
 
 fn run_http() {
+    for (key, value) in env::vars() {
+        println!("{}: {}", key, value);
+    }
+    let addr = env::var("MONGODB_PORT_27017_TCP_ADDR").unwrap();
+
     let consent = consent::ConsentEngineBuilder::new()
-        .address(format!("127.0.0.1"))
+        .address(addr)
         .port(27017)
         .deamon(format!("http://127.0.0.1:2375"))
         .build()
@@ -70,11 +75,9 @@ fn run_http() {
     router.get("/:user", handlers.dbquery, "get");
     router.post("/register", handlers.register, "register");
     router.delete("/:user", handlers.remove, "remove");
-    router.get("/lease/:", handlers.lease, "remove");
+    router.get("/lease/", handlers.lease, "lease");
 
-    thread::spawn(move || {
-        Iron::new(router).http("localhost:3001").unwrap();
-    });
+    thread::spawn(move || { Iron::new(router).http("0.0.0.0:3001").unwrap(); });
 
     let addr = "0.0.0.0:8900".parse().unwrap();
     let mut server = TcpServer::new(proto::ProtoProto, addr);

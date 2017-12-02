@@ -6,7 +6,7 @@ org = "ifi"
 common_name = "process"
 
 [ca]
-address = "127.0.0.1"
+address = "172.17.0.7"
 port = "8900"
 
 [certs]

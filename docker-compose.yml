@@ -1,0 +1,23 @@
+tolla:
+    build: .
+    container_name: "tolla"
+    links:
+        - mongodb:mongodb
+    volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - certificates:/tmp/certificates
+    ports:
+        - "8001:3001"
+        - 8900
+    environment:
+        HOST_IP: tolla
+mongodb:
+    image: mongo:latest
+    container_name: "mongodb"
+    environment:
+        - MONGO_DATA_DIR=/data/db
+    volumes:
+        - ./data/db:/data/db
+    ports:
+        - 27017
+
